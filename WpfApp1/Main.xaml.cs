@@ -1,4 +1,8 @@
-﻿using System.Windows;
+﻿using DesktopContactsApp;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
 using WpfApp1.Models;
 
 namespace WpfApp1
@@ -8,9 +12,12 @@ namespace WpfApp1
     /// </summary>
     public partial class Main : Window
     {
+        private List<Contact> contactsList;
         public Main()
         {
             InitializeComponent();
+
+            contactsList = new List<Contact>();
 
             ReadDataBase();
         }
@@ -27,20 +34,43 @@ namespace WpfApp1
         {
             using (SQLite.SQLiteConnection conn = new SQLite.SQLiteConnection(App.databasePath))
             {
-
                 conn.CreateTable<Contact>();
-                var contacts = conn.Table<Contact>().ToList();
-                if (contacts.Count != 0)
+                contactsList = conn.Table<Contact>().OrderBy(c => c.Name).ToList();
+                if (contactsList.Count != 0)
                 {
-                    //foreach (var contact in contacts)
-                    //{
-                    //    contactsListView.Items.Add(new ListViewItem()
-                    //    {
-                    //        Content = contact,
-                    //    });
-                    //}
-                    contactsListView.ItemsSource = contacts;
+                    contactsListView.ItemsSource = contactsList;
                 }
+
+                //var variable = from c2 in contactsList
+                //               orderby c2.Name
+                //               select c2;
+            }
+        }
+
+
+        private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            TextBox searchTextBox = (TextBox)sender;
+
+            var filteredList2 = contactsList.Where(c => c.Name.ToLower().Contains(searchTextBox.Text)).ToList();
+
+            var filteredList = (from c2 in contactsList
+                                where c2.Name.ToLower().Contains(searchTextBox.Text.ToLower())
+                                orderby c2.Email
+                                select c2).ToList();
+
+            contactsListView.ItemsSource = filteredList;
+        }
+
+        private void contactsListsView_SelectionChanged(object sender, SelectionChangedEventArgs e) 
+        {
+            Contact selectedContact =  (Contact)contactsListView.SelectedItem;
+
+            if (selectedContact != null) 
+            {
+                ContactDetailsWindow contactDetailsWindow = new ContactDetailsWindow(selectedContact);
+                contactDetailsWindow.ShowDialog();
+                ReadDataBase();
             }
         }
     }
